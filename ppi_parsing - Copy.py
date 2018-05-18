@@ -45,7 +45,7 @@ def dataframe_uniprot(file_name):
     """
     Read csv file and return pickled dataframe of UniprotID
     """
-    df= pd.read_csv("ppi.csv",chunksize=500)
+    df= pd.read_csv(file_name,chunksize=500)
     data = pd.DataFrame(columns=['idA','idB'])
 
     for df_chunk in df:
@@ -58,7 +58,7 @@ def dataframe_uniprot(file_name):
     data.pop('check_string')
     return data.to_pickle("uniprot_ID.pkl")
 
-def dict_conversion(filename):
+def dict_conversion_ID(filename):
     """
     Return a pickled dictionary for conversion purposes
     """
@@ -70,7 +70,7 @@ def dict_conversion(filename):
         list(filter(None, x.split(';'))))
 
     dict_conversion = (key_value_droppedna).set_index('uniprot').T.to_dict('list')
-    pickle.dump( dict_conversion, open( "dict_conversion.pkl", "wb" ) )
+    pickle.dump( dict_conversion, open( "dict_conversion_ID.pkl", "wb" ) )
 
 def df_uniprot_to_entrez(df,dict):
     
@@ -100,47 +100,78 @@ def df_uniprot_to_entrez(df,dict):
 
     return df_entrezID.to_pickle("df_entrezID.pkl")
 
-def make_dictionary_expression(filepath):
+def make_dictionary_expression(directory):
     """
-    Returns a dictionary
+    Returns a dictionary that will enable determination of co-expression values
     """
+    files = [i for i in os.listdir(directory)]
     
-def entrez_to_coexpression(df, dict):
+    conversion_dict = {} 
+    for f in files:
+        with open(os.path.join(directory,f)) as file_object:
+            for lien in file_object:
+             conversion_dict = {} 
+             for lin in file_object:
+                line = lin.split()
+                key = (str(f),str(line[0]))
+                if key not in conversion_dict:
+                    conversion_dict[key] = str(line[2])
+     
+    pickle.dump(conversion_dict, open( "directorydict_expression.pkl", "wb" ) )
+    
+def make_dictionary_expression2(directory):
+    """
+    Returns a dictionary that will enable determination of co-expression values
+    """
+    files = [i for i in os.listdir(directory)]
+    
+    for f in files:
+        with open(os.path.join(directory,f)) as file_object:
+            name = directory+"/"+"dict_coexpression_" + f + ".pkl"
+            rows = ( line.split('\t') for line in file_object ) 
+            conversion_dict     = { (f,str(row[0])):str(row[2]) for row in rows}
+            pickle.dump(conversion_dict, open( name, "wb" ) )
+
+
+    
+def entrez_to_coexpression(df, directory):
     """
     Returns pickled dataframe of coexpression values for
     a dataframe of entrez values via a coversion dictionary
     """
-    directory = "D:\shared\Co-expression_data\RNASEQ_Co_expression_data" 
-    file_extension = '.csv' 
+    df_coexpression = df.copy()
+    df_coexpression['coexpression'] = np.nan
     
-    conversion_dict = {} 
-
-    files = [i for i in os.listdir(directory) if os.path.splitext(i)[1] == file_extension]
-
-# Iterate over your txt files
-for f in txt_files:
-    # Open them and assign them to file_dict
-    with open(os.path.join(direc,f)) as file_object:
-        file_dict[f] = file_object.read()
-
-
-    for row in df.itterows():
-         for :
-             for :
-                 
+    files = [i for i in os.listdir(directory)]
+    
+    for i, row in df_coexpression.iterrows():
+        idA = (row['idA'])
+        idB = (row['idB'])
+        for elemA in idA:
+            for elemB in idB:
+                if elemA in files:
+                    name = directory+"/"+"dict_coexpression_" + str(elemA) + ".pkl"
+                    tup_tmp = (str(elemA), str(elemB))
+                    dict = pickle.load( open( name, "rb" ) )
+                    if tup_tmp in dict:
+                        row['coexpression'] = dict.get(tup_tmp) #row['coexpression'].append(dict.get(tup_tmp))
+                    
+    return df_coexpression       
             
-#dataframe_uniprot("ppi.csv")
-#dict_conversion("uniprot2entrez.csv")
+#dataframe_uniprot("/media/sf_shared/ppi_data_2/ppi.csv")
+#dict_conversion_ID("/media/sf_shared/ppi_data_2/uniprot2entrez.csv")
 
-dict_conversion = pickle.load( open( "dict_conversion.pkl", "rb" ) )
+dict_conversion_ID = pickle.load( open( "dict_conversion_ID.pkl", "rb" ) )
 df_uniprotID= pd.read_pickle("uniprot_ID.pkl")
 
-#df_uniprot_to_entrez(df_uniprotID, dict_conversion)
+df_uniprot_to_entrez(df_uniprotID, dict_conversion_ID)
 df_entrezID= pd.read_pickle("df_entrezID.pkl")
 #df_entrezID.to_csv("df_entrezID.csv")
 
+#make_dictionary_expression2("/media/sf_shared/Co-expression_data/RNASEQo_expression_data_C")
+#dict_expressiob = pickle.load( open( "/media/sf_shared/Co-expression_data/RNASEQ_Co_expression_data/dict_coexpression_1.pkl", "rb" ) )
 
-
+df_coexpression = entrez_to_coexpression(df_entrezID, "/media/sf_shared/Co-expression_data/RNASEQ_Co_expression_data")
 
 """
 with open('df_entrezID.csv', 'rb') as csvfile:
