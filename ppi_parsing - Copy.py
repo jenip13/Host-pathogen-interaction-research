@@ -8,11 +8,11 @@ This is a temporary script file.
 
 import pandas as pd
 import numpy as np
-import requests
+#import requests
 import pickle
 import os
-from math import isnan
-from itertools import islice
+#from math import isnan
+#from itertools import islice
 
 
 def pattern(taxcatA, taxcatB):
@@ -41,7 +41,7 @@ def df_pattern(df, taxcatA, taxcatB):
     df_unitprotID = df_host_on_host.loc[:,['idA','idB']]
     return df_unitprotID
 
-def dataframe_uniprot(file_name): 
+def dataframe_uniprot(file_name,taxcatA, taxcatB): 
     """
     Read csv file and return pickled dataframe of UniprotID
     """
@@ -49,14 +49,16 @@ def dataframe_uniprot(file_name):
     data = pd.DataFrame(columns=['idA','idB'])
 
     for df_chunk in df:
-        df_uniprotID = df_pattern(df_chunk, 'host', 'host')  
+        df_uniprotID = df_pattern(df_chunk,taxcatA, taxcatB)  
         data = data.append(df_uniprotID, ignore_index=True)
     
     #drop duplicates
     data['check_string'] = data.apply(lambda row: ''.join(sorted([row['idA'], row['idB']])), axis=1)
     data.drop_duplicates('check_string')
     data.pop('check_string')
-    return data.to_pickle("uniprot_ID.pkl")
+    
+    file_name = "uniprot_ID_%s_%s.pkl" % (taxcatA, taxcatB)
+    return data.to_pickle(file_name)
 
 def dict_conversion_ID(filename):
     """
@@ -72,7 +74,7 @@ def dict_conversion_ID(filename):
     dict_conversion = (key_value_droppedna).set_index('uniprot').T.to_dict('list')
     pickle.dump( dict_conversion, open( "dict_conversion_ID.pkl", "wb" ) )
 
-def df_uniprot_to_entrez(df,dict):
+def df_uniprot_to_entrez(df,dict, taxcatA, taxcatB):
     
     """
     Convert Dataframe with UniprotID to a pickled Dataframe with EntrezID
@@ -98,7 +100,8 @@ def df_uniprot_to_entrez(df,dict):
     df_entrezID = pd.DataFrame(list_entrezID)
     df_entrezID.columns = ['idA', 'idB']
 
-    return df_entrezID.to_pickle("df_entrezID.pkl")
+    file_name = "df_entrezID_%s_%s.pkl" % (taxcatA, taxcatB)
+    return df_entrezID.to_pickle(file_name)
 
 def make_dictionary_expression(directory):
     """
@@ -140,7 +143,7 @@ def entrez_to_coexpression(df, directory):
     a dataframe of entrez values via a coversion dictionary
     """
     df_coexpression = df.copy()
-    df_coexpression['coexpression'] = np.nan
+    df_coexpression['coexpression'] = np.empty((len(df), 0)).tolist()
     
     files = [i for i in os.listdir(directory)]
     
@@ -154,24 +157,46 @@ def entrez_to_coexpression(df, directory):
                     tup_tmp = (str(elemA), str(elemB))
                     dict = pickle.load( open( name, "rb" ) )
                     if tup_tmp in dict:
-                        row['coexpression'] = dict.get(tup_tmp) #row['coexpression'].append(dict.get(tup_tmp))
-                    
-    return df_coexpression       
+                        coexpression_value = float((dict.get(tup_tmp)).strip())
+                        row['coexpression'].append(coexpression_value) 
+        if (i%1000 == 0):
+            print(i)
+            df_coexpression.to_pickle("df_coexpression.pkl")
             
-#dataframe_uniprot("/media/sf_shared/ppi_data_2/ppi.csv")
+    #return df_coexpression       
+            
+#dataframe_uniprot("/media/sf_shared/ppi_data_2/ppi.csv", 'host', 'host')
 #dict_conversion_ID("/media/sf_shared/ppi_data_2/uniprot2entrez.csv")
-
 dict_conversion_ID = pickle.load( open( "dict_conversion_ID.pkl", "rb" ) )
-df_uniprotID= pd.read_pickle("uniprot_ID.pkl")
-
-df_uniprot_to_entrez(df_uniprotID, dict_conversion_ID)
-df_entrezID= pd.read_pickle("df_entrezID.pkl")
-#df_entrezID.to_csv("df_entrezID.csv")
-
+#df_uniprotID= pd.read_pickle("uniprot_ID_host_host.pkl")
+#df_uniprot_to_entrez(df_uniprotID, dict_conversion_ID, 'host', 'host')
+#df_entrezID= pd.read_pickle("df_entrezID_host_host.pkl")
+#df_entrezID.to_csv("/media/sf_shared/df_entrezID.csv")
+    
 #make_dictionary_expression2("/media/sf_shared/Co-expression_data/RNASEQo_expression_data_C")
-#dict_expressiob = pickle.load( open( "/media/sf_shared/Co-expression_data/RNASEQ_Co_expression_data/dict_coexpression_1.pkl", "rb" ) )
+#entrez_to_coexpression(df_entrezID,"/media/sf_shared/Co-expression_data/RNASEQ_Co_expression_data")
+df_coexpression = pd.read_pickle("df_coexpression.pkl")
+#df_coexpression.to_csv("/media/sf_shared/df_coexpression.csv")
 
-df_coexpression = entrez_to_coexpression(df_entrezID, "/media/sf_shared/Co-expression_data/RNASEQ_Co_expression_data")
+
+#dataframe_uniprot("/media/sf_shared/ppi_data_2/ppi.csv", 'host', 'virus')
+#df_uniprotID_host_virus= pd.read_pickle("uniprot_ID_host_virus.pkl")
+#df_uniprotID_host_virus.to_csv("/media/sf_shared/df_uniprotID_host_virus.csv")
+#df_uniprot_to_entrez(df_uniprotID_host_virus, dict_conversion_ID, 'host', 'virus')
+df_entrezID_host_virus= pd.read_pickle("df_entrezID_host_virus.pkl")
+df_entrezID_host_virus_reindexed = (df_entrezID_host_virus.set_index(['idB'])).sort_index()
+#df_entrezID_host_virus.to_csv("/media/sf_shared/df_entrezID_host_virus.csv")
+
+#dataframe_uniprot("/media/sf_shared/ppi_data_2/ppi.csv", 'host', 'bacteria')
+#df_uniprotID_host_bacteria= pd.read_pickle("uniprot_ID_host_bacteria.pkl")
+#df_uniprotID_host_bacteria.to_csv("/media/sf_shared/df_uniprotID_host_bacteria.csv")
+#df_uniprot_to_entrez(df_uniprotID_host_bacteria, dict_conversion_ID, 'host', 'bacteria')
+df_entrezID_host_bacteria= pd.read_pickle("df_entrezID_host_bacteria.pkl")
+df_entrezID_host_bacteria_reindexed = (df_entrezID_host_bacteria.set_index(['idB'])).sort_index()
+#df_entrezID_host_bacteria.to_csv("/media/sf_shared/df_entrezID_host_bacteria.csv")
+
+
+
 
 """
 with open('df_entrezID.csv', 'rb') as csvfile:
