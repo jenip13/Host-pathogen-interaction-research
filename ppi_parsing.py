@@ -1,18 +1,14 @@
 # -*- coding: utf-8 -*-
 """
-Spyder Editor
+Functions to parse protein-protein interaction data
 
-This is a temporary script file.
 """
 
 
 import pandas as pd
 import numpy as np
-#import requests
 import pickle
 import os
-#from math import isnan
-#from itertools import islice
 
 
 def pattern(taxcatA, taxcatB):
@@ -147,90 +143,51 @@ def entrez_to_coexpression(df, directory):
     
     files = [i for i in os.listdir(directory)]
     
+    
     for i, row in df_coexpression.iterrows():
         idA = (row['idA'])
         idB = (row['idB'])
-        for elemA in idA:
-            for elemB in idB:
+        
+        if idA in files:
+             name = directory+"/"+"dict_coexpression_" + str(idA) + ".pkl"
+             tup_tmp = (str(idA), str(idB))
+             dict1=  pickle.load( open( name, "rb" ) )
+             if tup_tmp in dict1:
+                 coexpression_value = float((dict1.get(tup_tmp)).strip())
+                 row['coexpression'].append(coexpression_value) 
+        
+        if idB in files:
+             name2 = directory+"/"+"dict_coexpression_" + str(idB) + ".pkl"
+             tup_tmp2 = (str(idB), str(idA))
+             dict2 = pickle.load( open( name2, "rb" ) )
+             if tup_tmp2 in dict2:
+                 coexpression_value2 = float((dict2.get(tup_tmp2)).strip())
+                 if (coexpression_value != coexpression_value2 ):
+                     row['coexpression'].append(coexpression_value2) 
+    
+    """
+    
+    for i, row in df_coexpression.iterrows():
+        idA = (row['idA'])
+        idB = (row['idB'])
+        for elemA in list(idA):
+            for elemB in list(idB):
                 if elemA in files:
                     name = directory+"/"+"dict_coexpression_" + str(elemA) + ".pkl"
                     tup_tmp = (str(elemA), str(elemB))
                     dict = pickle.load( open( name, "rb" ) )
                     if tup_tmp in dict:
                         coexpression_value = float((dict.get(tup_tmp)).strip())
-                        row['coexpression'].append(coexpression_value) 
+                        row['coexpression'].append(coexpression_value)
         if (i%1000 == 0):
             print(i)
             df_coexpression.to_pickle("df_coexpression.pkl")
-            
-    #return df_coexpression       
-            
-#dataframe_uniprot("/media/sf_shared/ppi_data_2/ppi.csv", 'host', 'host')
-#dict_conversion_ID("/media/sf_shared/ppi_data_2/uniprot2entrez.csv")
-dict_conversion_ID = pickle.load( open( "dict_conversion_ID.pkl", "rb" ) )
-#df_uniprotID= pd.read_pickle("uniprot_ID_host_host.pkl")
-#df_uniprot_to_entrez(df_uniprotID, dict_conversion_ID, 'host', 'host')
-#df_entrezID= pd.read_pickle("df_entrezID_host_host.pkl")
-#df_entrezID.to_csv("/media/sf_shared/df_entrezID.csv")
+       
+    """     
     
-#make_dictionary_expression2("/media/sf_shared/Co-expression_data/RNASEQo_expression_data_C")
-#entrez_to_coexpression(df_entrezID,"/media/sf_shared/Co-expression_data/RNASEQ_Co_expression_data")
-df_coexpression = pd.read_pickle("df_coexpression.pkl")
-#df_coexpression.to_csv("/media/sf_shared/df_coexpression.csv")
-
-
-#dataframe_uniprot("/media/sf_shared/ppi_data_2/ppi.csv", 'host', 'virus')
-#df_uniprotID_host_virus= pd.read_pickle("uniprot_ID_host_virus.pkl")
-#df_uniprotID_host_virus.to_csv("/media/sf_shared/df_uniprotID_host_virus.csv")
-#df_uniprot_to_entrez(df_uniprotID_host_virus, dict_conversion_ID, 'host', 'virus')
-df_entrezID_host_virus= pd.read_pickle("df_entrezID_host_virus.pkl")
-df_entrezID_host_virus_reindexed = (df_entrezID_host_virus.set_index(['idB'])).sort_index()
-#df_entrezID_host_virus.to_csv("/media/sf_shared/df_entrezID_host_virus.csv")
-
-#dataframe_uniprot("/media/sf_shared/ppi_data_2/ppi.csv", 'host', 'bacteria')
-#df_uniprotID_host_bacteria= pd.read_pickle("uniprot_ID_host_bacteria.pkl")
-#df_uniprotID_host_bacteria.to_csv("/media/sf_shared/df_uniprotID_host_bacteria.csv")
-#df_uniprot_to_entrez(df_uniprotID_host_bacteria, dict_conversion_ID, 'host', 'bacteria')
-df_entrezID_host_bacteria= pd.read_pickle("df_entrezID_host_bacteria.pkl")
-df_entrezID_host_bacteria_reindexed = (df_entrezID_host_bacteria.set_index(['idB'])).sort_index()
-#df_entrezID_host_bacteria.to_csv("/media/sf_shared/df_entrezID_host_bacteria.csv")
+    return df_coexpression       
+            
 
 
 
-
-"""
-with open('df_entrezID.csv', 'rb') as csvfile:
-    lines_gen = islice(csvfile, 200)
-    for line in lines_gen:
-        print(type(line))
-
-<form action="/cgi-bin/coex_search.cgi" method="post">
-		<input name="pair" value="1" type="hidden">
-		<table>
-		  <tbody><tr>
-		    <th>
-		      <img src="images/arrow_w.gif" class="middle" width="5" height="5">
-		      <a href="javascript:;" onclick="setExample('box_EdgeAnnotation_pair','12462\t12465\n12461\t12465\n12461\t12468\n'); return false;" value="example"> example </a>
-		    </th> 
-		  </tr>
-		  <tr>
-		    <td>
-		      <textarea name="genes" id="box_EdgeAnnotation_pair" cols="15" rows="9" onblur="displayQueryRule('box_EdgeAnnotation_pair')" onfocus="undiplayQueryRule('box_EdgeAnnotation_pair')" style="color: rgb(0, 0, 0);">		      </textarea>
-		    </td>
-		  </tr>
-		</tbody></table>
-		<div class="aCENTER">
-		  <input value="submit" type="submit">
-		</div>
-	    </form>  
-
-
-payload = {
-    'value': '111 11\n111 12',
-    }
-
-r = requests.post("http://coxpresdb.jp/cgi-bin/coex_search.cgi", 
-                  data=payload)
-
-"""
 
